@@ -89,123 +89,105 @@ typedef struct {
 	int pin;
 } GPIO_t;
 
-#define LED1r 0
-#define LED1w 1
-#define LED2  2
-#define LED3  3
-#define LED4  4
-#define LED5  5
-#define LED6  6
-#define LED7  7
-#define LED8  8
-#define LED9  9
-#define LED10 10
-#define LED11 11
-#define LED12 12
-#define LED14 13
-#define LED15 14
+// Temperature curve  19 .. 100 degrees celcius.
+int T19_100[] = {
+	 220,   // 19 C
+	 232,  246,  257,  270,  280,  290,  305,  320,  340,  355,
+	 370,  385,  400,  420,  440,  460,  475,  495,	 515,  530,
+	 545,  575,  600,  620,  640,  660,  685,  710,  735,  775,
+	 800,  830,  850,  880,  905,  935,  970, 1000, 1025, 1050,
+	1080, 1120, 1140, 1172, 1188, 1220, 1265, 1300, 1320, 1360,
+	1390, 1415, 1455, 1489, 1518, 1530,	1564, 1605, 1632, 1668,
+	1675, 1708, 1741, 1774, 1807, 1840, 1873, 1906, 1939, 1972,
+	2005, 2038, 2071, 2104, 2137, 2170, 2203, 2236, 2269, 2302,
+	2335   // 100 C
+};
 
-GPIO_t LED_N_PIN[15]={{/* LED1r */  LED_N_1r_4_7_11_GPIO_Port , LED_N_1r_4_7_11_Pin  },
-                      {/* LED1w */  LED_N_1w_5_8_12_GPIO_Port , LED_N_1w_5_8_12_Pin  },
-                      {/* LED2  */  LED_N_2_6_9_GPIO_Port     , LED_N_2_6_9_Pin      },
-                      {/* LED3  */  LED_N_3_10_14_15_GPIO_Port, LED_N_3_10_14_15_Pin },
-                      {/* LED4  */  LED_N_1r_4_7_11_GPIO_Port , LED_N_1r_4_7_11_Pin  },
-                      {/* LED5  */  LED_N_1w_5_8_12_GPIO_Port , LED_N_1w_5_8_12_Pin  },
-                      {/* LED6  */  LED_N_2_6_9_GPIO_Port     , LED_N_2_6_9_Pin      },
-                      {/* LED7  */  LED_N_1r_4_7_11_GPIO_Port , LED_N_1r_4_7_11_Pin  },
-                      {/* LED8  */  LED_N_1w_5_8_12_GPIO_Port , LED_N_1w_5_8_12_Pin  },
-                      {/* LED9  */  LED_N_2_6_9_GPIO_Port     , LED_N_2_6_9_Pin      },
-                      {/* LED10 */  LED_N_3_10_14_15_GPIO_Port, LED_N_3_10_14_15_Pin },
-                      {/* LED11 */  LED_N_1r_4_7_11_GPIO_Port , LED_N_1r_4_7_11_Pin  },
-                      {/* LED12 */  LED_N_1w_5_8_12_GPIO_Port , LED_N_1w_5_8_12_Pin  },
-                      {/* LED14 */  LED_N_3_10_14_15_GPIO_Port, LED_N_3_10_14_15_Pin },
-                      {/* LED15 */  LED_N_3_10_14_15_GPIO_Port, LED_N_3_10_14_15_Pin }};
 
-GPIO_t LED_P_PIN[15]={{/* LED1r */  LED_P_1r_1w_2_3_GPIO_Port,  LED_P_1r_1w_2_3_Pin  },
-                      {/* LED1w */  LED_P_1r_1w_2_3_GPIO_Port,  LED_P_1r_1w_2_3_Pin  },
-                      {/* LED2  */  LED_P_1r_1w_2_3_GPIO_Port,  LED_P_1r_1w_2_3_Pin  },
-                      {/* LED3  */  LED_P_1r_1w_2_3_GPIO_Port,  LED_P_1r_1w_2_3_Pin  },
-                      {/* LED4  */  LED_P_4_5_6_15_GPIO_Port ,  LED_P_4_5_6_15_Pin   },
-                      {/* LED5  */  LED_P_4_5_6_15_GPIO_Port ,  LED_P_4_5_6_15_Pin   },
-                      {/* LED6  */  LED_P_4_5_6_15_GPIO_Port ,  LED_P_4_5_6_15_Pin   },
-                      {/* LED7  */  LED_P_7_8_9_10_GPIO_Port ,  LED_P_7_8_9_10_Pin   },
-                      {/* LED8  */  LED_P_7_8_9_10_GPIO_Port ,  LED_P_7_8_9_10_Pin   },
-                      {/* LED9  */  LED_P_7_8_9_10_GPIO_Port ,  LED_P_7_8_9_10_Pin   },
-                      {/* LED10 */  LED_P_7_8_9_10_GPIO_Port ,  LED_P_7_8_9_10_Pin   },
-                      {/* LED11 */  LED_P_11_12_14_GPIO_Port ,  LED_P_11_12_14_Pin   },
-                      {/* LED12 */  LED_P_11_12_14_GPIO_Port ,  LED_P_11_12_14_Pin   },
-                      {/* LED14 */  LED_P_11_12_14_GPIO_Port ,  LED_P_11_12_14_Pin   },
-                      {/* LED15 */  LED_P_4_5_6_15_GPIO_Port ,  LED_P_4_5_6_15_Pin   }};
+// LED matrix
+/*
+ *
+ *       |    A3       |   A1       |   A0       |   A7                  |
+ * ------+-------------+------------+------------+-----------------------+
+ *   A2  |  LED1r [bSr]| LED4 [t80] | LED7  [5m] |  LED11  [bStartBrew]  |
+ * ------+-------------+------------+------------+-----------------------+
+ *   F1  |  LED1w [bSw]| LED5 [t70] | LED8  [4m] |  LED12  [bSelT]       |
+ * ------+-------------+------------+------------+-----------------------+
+ *   F0  |  LED2 [t100]| LED6 [t60] | LED9  [3m] |                       |
+ * ------+-------------+------------+------------+-----------------------+
+ *   C15 |  LED3 [8m]  | LED15 [t90]| LED10 [2m] |  LED14  [bSelM]       |
+ * ------+-------------+------------+------------+-----------------------+
+ */
 
-volatile int LED_state[15];
-int LED_sim_count = 0;
+#define _bStartR     0     // LED1r
+#define _t80_C       1     // LED4
+#define _Brew_5m     2     // LED7
+#define _bStartBrew  3     // LED11
 
-int LED_Temp[5] = {LED6, LED5, LED4, LED15, LED2};
-int LED_BrewTime[5] = {LED10, LED9, LED8, LED7, LED3};
-int LED_S1r = LED1r;
-int LED_S1w = LED1w;
-int LED_S2  = LED11;
-int LED_S3  = LED12;
-int LED_S4  = LED14;
+#define _bStartW     4     // LED1w
+#define _t70_C       5     // LED5
+#define _Brew_4m     6     // LED8
+#define _bSelectT    7     // LED12
 
-int LED_Tcode[10] = {LED10, LED9, LED8, LED7, LED3, LED6, LED5, LED4, LED15, LED2};
+#define _t100_C      8     // LED2
+#define _t60_C       9     // LED6
+#define _Brew_3m     10    // LED9
 
-int T19_100[] = {220, 232, 246, 257, 270, 280, 290, 305, 320, 340, 355, 370, 385, 400, 420, 440, 460, 475, 495, 515, 530, 545, 575,
-600, 620, 640, 660, 685, 710, 735, 775, 800, 830, 850, 880, 905, 935, 970, 1000, 1025, 1050, 1080, 1120, 1140, 1172,
-1188, 1220, 1265, 1300, 1320, 1360, 1390, 1415, 1455, 1489, 1518, 1530, 1564, 1605, 1632, 1668, 1675, 1708, 1741,
-1774, 1807, 1840, 1873, 1906, 1939, 1972, 2005, 2038, 2071, 2104, 2137, 2170, 2203, 2236, 2269, 2302, 2335};
+#define _Brew_8m     12    // LED3
+#define _t90_C       13    // LED15
+#define _Brew_2m     14    // LED10
+#define _bSelectM    15    // LED14
 
-GPIO_t LED_N_PINS[4] = {
+GPIO_t LED_ROW_PINS[4] = {
 		{LED_N_1r_4_7_11_GPIO_Port , LED_N_1r_4_7_11_Pin},
 		{LED_N_1w_5_8_12_GPIO_Port, LED_N_1w_5_8_12_Pin},
 		{LED_N_2_6_9_GPIO_Port, LED_N_2_6_9_Pin},
 		{LED_N_3_10_14_15_GPIO_Port, LED_N_3_10_14_15_Pin}
 };
 
-GPIO_t LED_P_PINS[4] = {
+GPIO_t LED_COL_PINS[4] = {
 		{LED_P_1r_1w_2_3_GPIO_Port, LED_P_1r_1w_2_3_Pin},
 	    {LED_P_4_5_6_15_GPIO_Port ,  LED_P_4_5_6_15_Pin},
 	    {LED_P_7_8_9_10_GPIO_Port ,  LED_P_7_8_9_10_Pin},
 	    {LED_P_11_12_14_GPIO_Port ,  LED_P_11_12_14_Pin}
 };
 
-void LEDinit() {
-	for (int i = 0; i < 4; i++ ) {
-		HAL_GPIO_WritePin(LED_N_PINS[i].port, LED_N_PINS[i].pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_P_PINS[i].port, LED_P_PINS[i].pin, GPIO_PIN_RESET);
-	}
-}
+int LED_state[4*4]; // LED matrix
+
+int LED_Temp[5]     = {_t60_C, _t70_C, _t80_C, _t90_C, _t100_C};
+int LED_BrewTime[5] = {_Brew_2m, _Brew_3m, _Brew_4m, _Brew_5m, _Brew_8m};
 
 void ScanLED()
 {
-	LEDinit();
+	static int col = 0;
 
-	static int i = 0;
-	int t = 0;
-	for (int j = 0; j < 15; j++) {
-		if (LED_state[j] > 0) {
-			if (t == i) {
-				HAL_GPIO_WritePin(LED_N_PIN[j].port, LED_N_PIN[j].pin, GPIO_PIN_RESET);
-				HAL_GPIO_WritePin(LED_P_PIN[j].port, LED_P_PIN[j].pin, GPIO_PIN_SET);
-				break;
-			}
-			t++;
-		}
+	// light off LED column
+	HAL_GPIO_WritePin(LED_COL_PINS[col].port, LED_COL_PINS[col].pin, GPIO_PIN_RESET);
+
+	// Advance to next column
+	if (++col >= 4) col = 0;
+
+	// Update row values
+	for (int row = 0; row < 4; row++) {
+		HAL_GPIO_WritePin(
+				LED_ROW_PINS[row].port, LED_ROW_PINS[row].pin,
+				(LED_state[row * 4 + col] > 0) ? GPIO_PIN_RESET : GPIO_PIN_SET
+		);
 	}
-	i++; if (i >= LED_sim_count) i = 0;
+
+	// light on LED column
+	HAL_GPIO_WritePin(LED_COL_PINS[col].port, LED_COL_PINS[col].pin, GPIO_PIN_SET);
 }
 
 void SwitchLED_ON(int i) {
 	if (LED_state[i] == 0) {
 		LED_state[i] = 1;
-		LED_sim_count++;
 	}
 }
 
 void SwitchLED_OFF(int i) {
 	if (LED_state[i] == 1) {
 		LED_state[i] = 0;
-		LED_sim_count--;
 	}
 }
 
@@ -376,7 +358,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
             	Tmode_change_timer--;
             	Temp_idx = targetT;
             	if (Tmode_change_timer == 0) {
-          		  SwitchLED_OFF(LED_S3);
+          		  SwitchLED_OFF(_bSelectT);
                   Temp_idx = _min(_max(((int)__tC - 55) / 10, 0), 4);
             	}
             } else {
@@ -506,7 +488,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  SwitchLED_ON(LED_S1w);
+  SwitchLED_ON(_bStartW);
   SwitchLED_ON(LED_Temp[Temp_idx]);
   //SwitchLED_ON(LED_Temp[Temp_idx]);
   while (1)
@@ -518,13 +500,13 @@ int main(void)
 	  if (ButtonEvent == 1) { // Push heating button
 		  ButtonEvent = 0;
 		  Heat_state = !Heat_state;
-		  SwitchLED_OFF(LED_S1r);
-		  SwitchLED_OFF(LED_S1w);
+		  SwitchLED_OFF(_bStartR);
+		  SwitchLED_OFF(_bStartW);
 		  if (Heat_state != 0) {
-			  SwitchLED_ON(LED_S1r);
+			  SwitchLED_ON(_bStartR);
 			  tidx = 0;
 
-			  SwitchLED_ON(LED_S3);
+			  SwitchLED_ON(_bSelectT);
 			  SwitchLED_OFF(LED_Temp[Temp_idx]);
 			  Tmode_change_timer = 5;
 			  Temp_idx = targetT;
@@ -534,7 +516,7 @@ int main(void)
 			  //printf("%.8i: %7.2f: START HEATING\n\r", tidx, __Tadc);
 		  }
 		  if (Heat_state == 0) {
-			  SwitchLED_ON(LED_S1w);
+			  SwitchLED_ON(_bStartW);
 			  //printf("%.8i: %7.2f: STOP HEATING\n\r", tidx, __Tadc);
 		  }
 	  }
@@ -547,7 +529,7 @@ int main(void)
 			  if (++targetT == 5) targetT = 0;
 		  }
 
-		  SwitchLED_ON(LED_S3);
+		  SwitchLED_ON(_bSelectT);
 		  SwitchLED_OFF(LED_Temp[Temp_idx]);
 		  Tmode_change_timer = 5;
 		  Temp_idx = targetT;
@@ -555,7 +537,7 @@ int main(void)
 		  BeepStart(300);
 
 	  }
-	  if (ButtonEvent == 4) { // Bush brew time select button ?
+	  if (ButtonEvent == 4) { // Push brew time select button ?
 		  ButtonEvent = 0;
 		  if (BrewTime_idx >= 0)
 			  SwitchLED_OFF(LED_BrewTime[BrewTime_idx]);
@@ -683,7 +665,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 48-1;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 50;
+  htim6.Init.Period = 200;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
