@@ -11,11 +11,18 @@ So after-boiling can run for minute after actual boiling starts. This delay is h
 And it was fun to investigate boiling process, to make figures of time-temperature, make analisys and produce some expressions wich can help to predict boiling. 
 
 
-This firmware is not finished, and I'm trying to add updates from time to time, but it does main thing! 
+This firmware is not finished, and I'm trying to add updates from time to time, but it does main thing!  
 So what is working for now:
-- Start heating process by pushing Sart button
-- Select target temperature to stop heating, 60..100 degrees
--   Stop boiling using prediction expression.
-- Beep on button push
-- Beep on stop boling
-- Select brew time) but actual brewing does not work for now. I need to add some smart temperature regulation. 
+- HW features:
+  - LED matrix
+  - Buttons press+debounce
+  - Heater
+  - Beeper
+  - Thermo-resistor
+- SW features:
+  - Start heating process by pushing Sart button
+  - Select target temperature to stop heating, 60..100 degrees
+  -   Stop boiling using prediction expression.
+  - Beep on button push
+  - Beep on stop boling
+  - Select brew time) but actual brewing does not work for now. I need to add some smart temperature regulation. 
