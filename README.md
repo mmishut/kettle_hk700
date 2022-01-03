@@ -31,4 +31,4 @@ So what is working for now:
 Disclaimer
 ----------
 You can use this firmware on your own risk. I do not have link to original firmware so it will be impossilbe to restore original fimware if you go this way.
-Thermo-resistor temperature diagram and delay characteristics could be uniq and you may need to adapt this firmware to your own HK-700 kettle.
+Thermo-resistor temperature diagram and delay characteristics could be unique and you may need to adapt this firmware to your own HK-700 kettle.
