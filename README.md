@@ -1,6 +1,7 @@
 # kettle_hk700
 Haier HK-700 alternative firmware (pre Alpha)
 
+
 This is a story of fixing long afterboil process on Haier HK-700.  
 So, one day I opened main-board of kettle and I saw that I'm lucky guy when I found that it is based on STM32 and there were 4 soldered pins for direct connect of my ST-Link.
 I was very selfconfident in fixing original firmware, so much confident that I erased "read-protection" bit in STM32 controller... I'm newbie in STM32 but not a total newbie in embedded programming.  And it was start of rewriting HK-700 firmware from scratch. 
@@ -26,3 +27,8 @@ So what is working for now:
   - Beep on button push
   - Beep on stop boling
   - Select brew time) but actual brewing does not work for now. I need to add some smart temperature regulation. 
+
+Disclaimer
+----------
+You can use this firmware on your own risk. I do not have link to original firmware so it will be impossilbe to restore original fimware if you go this way.
+Thermo-resistor temperature diagram and delay characteristics could be uniq and you may need to adapt this firmware to your own HK-700 kettle.
