@@ -1,6 +1,4 @@
-# kettle_hk700
-Haier HK-700 alternative firmware (pre Alpha)
-
+# Haier HK-700 alternative firmware (pre Alpha)
 
 This is a story of fixing long afterboil process on Haier HK-700.  
 
