@@ -72,7 +72,6 @@ static void MX_TIM16_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-
 /**
   * @brief  Retargets the C library printf function to the USART.
   * @param  None
@@ -88,6 +87,58 @@ typedef struct {
 	GPIO_TypeDef* port;
 	int pin;
 } GPIO_t;
+
+
+/*
+ * Possible kettle states:
+ * 1 - empty
+ * 2 - not empty
+ *
+ * 3 - on the base (plate)       // T ADC > 0 , 220 for 19 Degrees C
+ * 		heating             - heating speed can give water amount estimation 1
+ * 			heating to 100
+ * 			heating to 90
+ * 			heating to 80
+ * 			heating to 70
+ * 			heating to 60
+ * 					Heating parameters (Tstart, Tstop, WaterAmount) to estimate heating time
+ *
+ * 			brew and keep temp in the range?
+ * 			brew and keep temp
+ * 		cooling down        - cooling speed can give water amount estimation 2
+ *
+ * 		long period of cooling and being in constantly low temperature can give clue about air temperature (over night)
+ * 			long period of being on the base (plate) without
+ * 				any fast change of temperature (adding new water)
+ * 				heating
+ *
+ * 		test heating
+ * 			short period heating to check delay (resistor) and
+ *
+ *
+ * 4 - off the base (plate)      // T Resistor is 0 (zero) or almost zero
+ * 		cooling down          - // time before set on base can give temerpatrue estimation based on water amount estimation
+ * 								// not very ofter procedure
+ * 		emptying (faster cooling down)
+ * 							  - // often procedure
+ * 							  	// time with water estimation and last temperature can predict temperature for each moment it return
+ * 							  	   to the base
+ * 							  	   temperature difference can give guess is it emptied (temp is decreased slowly)
+ * 							  	   or it is dramatically down (it is filled again)
+ *
+ * 		filling with water (faster cooling down)
+ *
+ *
+ * 5 - water temperature?
+ * 		can give guess on surrounding air temperature
+ * 		lower than surrounding air temperature (can give false guess)
+ *
+ *
+ * Required processes:
+ * 	Water amount estimation
+ * 	Ext Air Temperature Estimation
+ */
+
 
 // Temperature curve  19 .. 100 degrees celcius.
 int T19_100[] = {
@@ -328,6 +379,103 @@ int _max(int a, int b) {
 	return (a > b) ? a : b;
 }
 
+#define kwnd_size 64
+float kwnd[kwnd_size];
+int kwnd_idx = 0;
+#define __tS 24.0f
+
+void HeatControl()
+{
+	__Tadc = (float)__Tadc_uint_summ/(float)WIN_SIZE;
+	__tC = Tadc_to_C(__Tadc);
+	__Tadc_diff = __Tadc - __Tadc_prev;
+	__Tadc_prev = __Tadc;
+	__Tadc_uint_summ = 0;
+
+	float C = 0;
+
+	static int period10sec = 0;
+
+	if (++period10sec == 10) {
+		period10sec = 0;
+	}
+
+    SwitchLED_OFF(LED_Temp[Temp_idx]);
+
+    kwnd_idx = (kwnd_idx + 1) % kwnd_size;
+    kwnd[kwnd_idx] = __tC;
+
+    if (Tmode_change_timer > 0) {
+    	Tmode_change_timer--;
+    	Temp_idx = targetT;
+    	if (Tmode_change_timer == 0) {
+  		  SwitchLED_OFF(_bSelectT);
+          Temp_idx = _min(_max(((int)__tC - 55) / 10, 0), 4);
+    	}
+    } else {
+        Temp_idx = _min(_max(((int)__tC - 55) / 10, 0), 4);
+    }
+
+    SwitchLED_ON(LED_Temp[Temp_idx]);
+
+	if (Heat_state != 0)
+	{
+		HAL_GPIO_WritePin(PWR220_GPIO_Port, PWR220_Pin, GPIO_PIN_SET);
+
+		// c1 = min(abs((2350 - T1)./D1), 40);
+		if (targetT == targetT_100) {
+        	C = fabs((2350.0f - __Tadc)/__Tadc_diff);
+			if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
+			{
+				BeepStart(2000);
+				ButtonEvent = 1;
+			}
+
+		}
+		if (targetT == targetT_90) {
+        	C = fabs((2005.0f - __Tadc)/__Tadc_diff);
+			if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
+			{
+				ButtonEvent = 1;
+			}
+		}
+		if (targetT == targetT_80) {
+        	C = fabs((1675.0f - __Tadc)/__Tadc_diff);
+			if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
+			{
+				ButtonEvent = 1;
+			}
+		}
+		if (targetT == targetT_70) {
+        	C = fabs((1390.0f - __Tadc)/__Tadc_diff);
+			if (__Tadc >= 700.0f && C < 20.0f) // Prediction criterion
+			{
+				ButtonEvent = 1;
+			}
+		}
+		if (targetT == targetT_60) {
+        	C = fabs((1080.0f - __Tadc)/__Tadc_diff);
+			if (__Tadc >= 500.0f && C < 20.0f) // Prediction criterion
+			{
+				ButtonEvent = 1;
+			}
+		}
+		if (__Tadc >= 2300.0f) // Hard Stop criterion
+		{
+			ButtonEvent = 1;
+		}
+	}
+	else
+	{
+		HAL_GPIO_WritePin(PWR220_GPIO_Port, PWR220_Pin, GPIO_PIN_RESET);
+		C = 0;
+	}
+
+	float k = -log( (__tC - __tS) / (kwnd[(kwnd_idx + 1) % kwnd_size] - __tS) ) / (float)kwnd_size;
+
+	printf("%.8i: %7.2f: %7.2f: %e:\n\r", tidx++, __Tadc, __tC , k);
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
 	if (htim == &htim16)
@@ -341,85 +489,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
         __Tadc_uint_curr = HAL_ADC_GetValue(&hadc);
         __Tadc_uint_summ += __Tadc_uint_curr;
 
-        measure_idx++;
-
-        if (measure_idx == WIN_SIZE)
+        if (++measure_idx == WIN_SIZE)
         {
         	measure_idx = 0;
-        	__Tadc = (float)__Tadc_uint_summ/(float)WIN_SIZE;
-        	__tC = Tadc_to_C(__Tadc);
-        	__Tadc_diff = __Tadc - __Tadc_prev;
-        	__Tadc_prev = __Tadc;
-        	__Tadc_uint_summ = 0;
-
-            SwitchLED_OFF(LED_Temp[Temp_idx]);
-
-            if (Tmode_change_timer > 0) {
-            	Tmode_change_timer--;
-            	Temp_idx = targetT;
-            	if (Tmode_change_timer == 0) {
-          		  SwitchLED_OFF(_bSelectT);
-                  Temp_idx = _min(_max(((int)__tC - 55) / 10, 0), 4);
-            	}
-            } else {
-                Temp_idx = _min(_max(((int)__tC - 55) / 10, 0), 4);
-            }
-
-            SwitchLED_ON(LED_Temp[Temp_idx]);
-
-			if (Heat_state != 0)
-			{
-				HAL_GPIO_WritePin(PWR220_GPIO_Port, PWR220_Pin, GPIO_PIN_SET);
-
-				// c1 = min(abs((2350 - T1)./D1), 40);
-				if (targetT == targetT_100) {
-		        	float C = fabs((2350.0f - __Tadc)/__Tadc_diff);
-					if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
-					{
-						BeepStart(2000);
-						ButtonEvent = 1;
-					}
-
-				}
-				if (targetT == targetT_90) {
-		        	float C = fabs((2005.0f - __Tadc)/__Tadc_diff);
-					if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
-					{
-						ButtonEvent = 1;
-					}
-				}
-				if (targetT == targetT_80) {
-		        	float C = fabs((1675.0f - __Tadc)/__Tadc_diff);
-					if (__Tadc >= 1000.0f && C < 20.0f) // Prediction criterion
-					{
-						ButtonEvent = 1;
-					}
-				}
-				if (targetT == targetT_70) {
-		        	float C = fabs((1390.0f - __Tadc)/__Tadc_diff);
-					if (__Tadc >= 700.0f && C < 20.0f) // Prediction criterion
-					{
-						ButtonEvent = 1;
-					}
-				}
-				if (targetT == targetT_60) {
-		        	float C = fabs((1080.0f - __Tadc)/__Tadc_diff);
-					if (__Tadc >= 500.0f && C < 20.0f) // Prediction criterion
-					{
-						ButtonEvent = 1;
-					}
-				}
-				if (__Tadc >= 2300.0f) // Hard Stop criterion
-				{
-					ButtonEvent = 1;
-				}
-			}
-			else
-			{
-				HAL_GPIO_WritePin(PWR220_GPIO_Port, PWR220_Pin, GPIO_PIN_RESET);
-			}
-
-			//printf("%.8i: %7.2f: %7.2f: %7.3f:\n\r", tidx++, __Tadc, __tC , C);
+        	HeatControl();
         }
 	}
 	if (htim == &htim6) {
@@ -538,6 +611,11 @@ int main(void)
 
 	  }
 	  if (ButtonEvent == 4) { // Push brew time select button ?
+		  // What should be done?
+		  // start timer for 2 3 4 5 8 minutes
+		  // beep after time is gone
+		  // keep temperature in required range: target T +- 5 Celcius?
+
 		  ButtonEvent = 0;
 		  if (BrewTime_idx >= 0)
 			  SwitchLED_OFF(LED_BrewTime[BrewTime_idx]);
