@@ -29,6 +29,14 @@ So what is working for now:
   - Beep on stop boling
   - Select brew time) but actual brewing does not work for now. I need to add some smart temperature regulation. 
 
+Build and run:
+--------------
+Now it is using CubeIDE to build, run and debug.
+
+Main board ST-Link connect pins
+-------------------------------
+TBD
+
 Disclaimer
 ----------
 You can use this firmware on your own risk. I do not have link to original firmware so it will be impossilbe to restore original fimware if you go this way.
