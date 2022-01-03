@@ -15,7 +15,7 @@ This firmware is not finished, and I'm trying to add updates from time to time, 
 So what is working for now:
 - Start heating process by pushing Sart button
 - Select target temperature to stop heating, 60..100 degrees
--   Auto stop boiling on achieving target temperature +-5 degrees.
+-   Stop boiling using prediction expression.
 - Beep on button push
 - Beep on stop boling
 - Select brew time) but actual brewing does not work for now. I need to add some smart temperature regulation. 
