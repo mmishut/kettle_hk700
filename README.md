@@ -17,8 +17,8 @@ So what is working for now:
   - LED matrix
   - Buttons press+debounce
   - Heater
-  - Beeper
   - Thermo-resistor
+  - Beeper
 - SW features:
   - Start heating process by pushing Sart button
   - Select target temperature to stop heating, 60..100 degrees
