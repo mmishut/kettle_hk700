@@ -20,7 +20,7 @@ So what is working for now:
   - Thermo-resistor
   - Beeper
 - SW features:
-  - Start heating process by pushing Sart button
+  - Start heating process by pushing Start button
   - Select target temperature to stop heating, 60..100 degrees
   -   Stop boiling using prediction expression.
   - Beep on button push
