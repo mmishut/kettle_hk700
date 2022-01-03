@@ -3,7 +3,8 @@ Haier HK-700 alternative firmware (pre Alpha)
 
 
 This is a story of fixing long afterboil process on Haier HK-700.  
-So, one day I opened main-board of kettle and I saw that I'm lucky guy when I found that it is based on STM32 and there were 4 soldered pins for direct connect of my ST-Link.
+
+One day I opened main-board of kettle and I saw that I'm lucky guy when I found that it is based on STM32 and there were 4 soldered pins for direct connect of my ST-Link.
 I was very selfconfident in fixing original firmware, so much confident that I erased "read-protection" bit in STM32 controller... I'm newbie in STM32 but not a total newbie in embedded programming.  And it was start of rewriting HK-700 firmware from scratch. 
 
 Main issue of HK-700 is that thermo-resistor is hidden in bottom of kettle and there is huge delay between actual water temperature change and resistor response. 
