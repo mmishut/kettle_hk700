@@ -89,7 +89,7 @@ typedef struct {
 	int pin;
 } GPIO_t;
 
-// Temperature curve  19 .. 100 degrees celcius.
+// Temperature curve  19 .. 100 degrees Celsius.
 int T19_100[] = {
 	 220,   // 19 C
 	 232,  246,  257,  270,  280,  290,  305,  320,  340,  355,
