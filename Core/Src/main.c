@@ -291,11 +291,10 @@ void PwmSineGen() {
 void BeepClk() {
 	static int buzzer_val = 0;
 	buzzer_val = (buzzer_val + 1) % PWM_SINE_LENGTH;
-	TIM3->CCR2 = pwm_sine[buzzer_val];
-	if (audio_clks-- <= 0) {
-		HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_2);
-		HAL_TIM_Base_Stop_IT(&htim15);
-	}
+        /* Update buzzer output here when using PWM */
+        if (audio_clks-- <= 0) {
+                HAL_TIM_Base_Stop_IT(&htim15);
+        }
 }
 
 #else
