@@ -249,6 +249,22 @@ float __Tadc_prev = 0;
 float __Tadc_diff = 0;
 float __tC = 0;
 
+// additional control variables
+#define POWER_W              2000.0f
+#define SPECIFIC_HEAT_WATER  4180.0f
+#define TICK_SEC             0.016f
+#define PLATE_HEAT_FRAC      0.1f
+#define MASS_EST_TICKS       300
+
+float water_mass = 1.0f;      // estimated water mass in kg
+float prev_water_mass = 1.0f;
+float plate_heat = 0.0f;      // estimated heat energy in heating plate
+float tC_start = 0.0f;
+float tC_prev = 0.0f;
+int heating_ticks = 0;
+int water_changed = 0;
+float predicted_time_s = 0.0f;
+
 
 int BrewTime_idx = -1;
 
@@ -350,7 +366,47 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
         	__tC = Tadc_to_C(__Tadc);
         	__Tadc_diff = __Tadc - __Tadc_prev;
         	__Tadc_prev = __Tadc;
-        	__Tadc_uint_summ = 0;
+                __Tadc_uint_summ = 0;
+
+                float tC_diff = __tC - tC_prev;
+                if (Heat_state == 0 && fabsf(tC_diff) > 3.0f) {
+                        water_changed = 1;
+                }
+                tC_prev = __tC;
+
+                if (Heat_state != 0) {
+                        heating_ticks++;
+                        if (heating_ticks == 1) {
+                                tC_start = __tC;
+                                plate_heat = 0.0f;
+                        }
+                        if (heating_ticks == MASS_EST_TICKS) {
+                                float dt = (float)MASS_EST_TICKS * TICK_SEC;
+                                float dT = __tC - tC_start;
+                                if (dT > 0.5f) {
+                                        prev_water_mass = water_mass;
+                                        water_mass = (POWER_W * dt) / (SPECIFIC_HEAT_WATER * dT);
+                                        if (fabsf(water_mass - prev_water_mass) > 0.1f) {
+                                                water_changed = 1;
+                                        }
+                                }
+                        }
+                        plate_heat += POWER_W * PLATE_HEAT_FRAC * TICK_SEC;
+                        if (plate_heat > POWER_W * 10.0f) {
+                                plate_heat = POWER_W * 10.0f;
+                        }
+
+                        float target_temp = 60.0f + (float)targetT * 10.0f;
+                        float predicted_final = __tC + plate_heat/(water_mass*SPECIFIC_HEAT_WATER);
+                        float heating_rate = POWER_W / (water_mass*SPECIFIC_HEAT_WATER);
+                        predicted_time_s = (target_temp - predicted_final) / heating_rate;
+                        if (predicted_time_s <= 0.0f) {
+                                ButtonEvent = 1;
+                        }
+                } else {
+                        heating_ticks = 0;
+                        plate_heat *= 0.98f;
+                }
 
             SwitchLED_OFF(LED_Temp[Temp_idx]);
 
@@ -502,11 +558,17 @@ int main(void)
 		  Heat_state = !Heat_state;
 		  SwitchLED_OFF(_bStartR);
 		  SwitchLED_OFF(_bStartW);
-		  if (Heat_state != 0) {
-			  SwitchLED_ON(_bStartR);
-			  tidx = 0;
+                  if (Heat_state != 0) {
+                          SwitchLED_ON(_bStartR);
+                          tidx = 0;
 
-			  SwitchLED_ON(_bSelectT);
+                          heating_ticks = 0;
+                          plate_heat = 0.0f;
+                          tC_start = __tC;
+                          tC_prev = __tC;
+                          water_changed = 0;
+
+                          SwitchLED_ON(_bSelectT);
 			  SwitchLED_OFF(LED_Temp[Temp_idx]);
 			  Tmode_change_timer = 5;
 			  Temp_idx = targetT;
@@ -515,10 +577,12 @@ int main(void)
 
 			  //printf("%.8i: %7.2f: START HEATING\n\r", tidx, __Tadc);
 		  }
-		  if (Heat_state == 0) {
-			  SwitchLED_ON(_bStartW);
-			  //printf("%.8i: %7.2f: STOP HEATING\n\r", tidx, __Tadc);
-		  }
+                  if (Heat_state == 0) {
+                          SwitchLED_ON(_bStartW);
+                          heating_ticks = 0;
+                          predicted_time_s = 0.0f;
+                          //printf("%.8i: %7.2f: STOP HEATING\n\r", tidx, __Tadc);
+                  }
 	  }
 	  if (ButtonEvent == 2) {
 		  ButtonEvent = 0;
