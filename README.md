@@ -37,5 +37,5 @@ TBD
 
 Disclaimer
 ----------
-You can use this firmware on your own risk. I do not have link to original firmware so it will be impossilbe to restore original fimware if you go this way.
+You can use this firmware on your own risk. I do not have link to original firmware so it will be impossible to restore original firmware if you go this way.
 Thermo-resistor temperature diagram and delay characteristics could be unique and you may need to adapt this firmware to your own HK-700 kettle.
